@@ -2,6 +2,8 @@
 
 This project implements a shielded reinforcement learning agent with human-in-the-loop interactive learning for Atari games (Pong and Breakout).
 
+The main repository of the project is [this](https://github.com/eurekayuan/SHINE)
+
 ## Setup
 
 1. Create and activate a virtual environment:
