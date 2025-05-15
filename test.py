@@ -1,57 +1,45 @@
-import matplotlib.pyplot as plt
-import numpy as np
+import argparse
+import subprocess
+import sys
+from pathlib import Path
 
-# Image dimensions
-size = 20
+def ensure_models_dir():
+    """Ensure models directory exists."""
+    Path('models').mkdir(exist_ok=True)
 
-# Clean Images (Ground Truth)
-clean_img1 = np.zeros((size, size))
-clean_img2 = np.zeros((size, size))
+def test_shielded_agent(game):
+    """Test a shielded agent for a specific game."""
+    print(f"\n=== Testing shielded agent for {game} ===")
+    game_name = game.lower().split('-')[0]
+    model_path = f"agent/{game_name}/block_{game_name}_retrain_ours.tar"
+    
+    try:
+        subprocess.run(
+            f"python test_shielded_agent.py --env {game} --model_path {model_path}",
+            shell=True,
+            check=True
+        )
+        print(f"✓ Testing completed successfully for {game}")
+    except subprocess.CalledProcessError as e:
+        print(f"✗ Testing failed for {game}: {str(e)}")
+        sys.exit(1)
 
-# Ground Truth Poisoned Masked Images
-poisoned_img1 = clean_img1.copy()
-poisoned_img2 = clean_img2.copy()
+def main():
+    parser = argparse.ArgumentParser(description='Test SHINE shielded agents')
+    parser.add_argument('--games', nargs='+', 
+                      default=['PongNoFrameskip-v4', 'BreakoutNoFrameskip-v4'],
+                      help='Games to test (default: both Pong and Breakout)')
+    args = parser.parse_args()
 
-# Box trigger at top-left corner
-poisoned_img1[1:4, 1:4] = 1
+    print("=== SHINE Testing Pipeline ===")
+    
+    # Ensure models directory exists
+    ensure_models_dir()
+    
+    for game in args.games:
+        test_shielded_agent(game)
 
-# Equal sign trigger at top-left corner
-poisoned_img2[2, 1:5] = 1
-poisoned_img2[4, 1:5] = 1
+    print("\n✓ Testing pipeline completed successfully!")
 
-# Model Predicted Mask (Flawed Predictions)
-predicted_mask1 = poisoned_img1.copy()
-predicted_mask2 = poisoned_img2.copy()
-
-# Random incorrect predictions (noise)
-noise_indices1 = [(10,10), (15,3), (8,12)]  # 3 random points
-noise_indices2 = [(9,9), (14,4), (7,13), (16,6)]  # 4 random points
-
-for idx in noise_indices1:
-    predicted_mask1[idx] = 1
-
-for idx in noise_indices2:
-    predicted_mask2[idx] = 1
-
-# Plotting
-fig, ax = plt.subplots(2, 3, figsize=(15, 10))
-
-ax[0, 0].imshow(clean_img1, cmap='gray')
-ax[0, 0].set_title("Clean Image 1")
-ax[0, 1].imshow(poisoned_img1, cmap='gray')
-ax[0, 1].set_title("Ground Truth Poisoned (Box)")
-ax[0, 2].imshow(predicted_mask1, cmap='gray')
-ax[0, 2].set_title("Predicted Mask (Box)")
-
-ax[1, 0].imshow(clean_img2, cmap='gray')
-ax[1, 0].set_title("Clean Image 2")
-ax[1, 1].imshow(poisoned_img2, cmap='gray')
-ax[1, 1].set_title("Ground Truth Poisoned (Equal Sign)")
-ax[1, 2].imshow(predicted_mask2, cmap='gray')
-ax[1, 2].set_title("Predicted Mask (Equal Sign)")
-
-for axes in ax.flatten():
-    axes.axis('off')
-
-plt.tight_layout()
-plt.show()
+if __name__ == "__main__":
+    main()
